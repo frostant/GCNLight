@@ -105,4 +105,3 @@ BPR[sample time][16.9=16.60+0.45]
 | **layer=2** | 0.05988               | 0.04956 | 0.0271 |
 | **layer=3** | 0.06347          | 0.05238 | 0.0285 |
 | **layer=4** | 0.06515                | 0.05325 | 0.02917 |
- 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

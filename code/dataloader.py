@@ -161,6 +161,10 @@ class LastFM(BasicDataset):
         _trainData-= 1
         testData -= 1
         # print(_trainData.shape)
+        self.edgeWeight=False
+        self.trainValue=None
+        if self.edgeWeight:
+            self.trainValue=_trainData[:,2]
         trainData = _trainData[:,:2]
         trainData = trainData.astype("int")
         self.trainUser = np.array(trainData[:,0],dtype="int")
@@ -245,8 +249,12 @@ class LastFM(BasicDataset):
             second_sub = torch.stack([item_dim+self.n_users, user_dim])
             # 1 user item 2 item user
             index = torch.cat([first_sub, second_sub], dim=1)
-            data = torch.ones(index.size(-1)).int()
-            self.Graph = torch.sparse.IntTensor(index, data, torch.Size([self.n_users+self.m_items, self.n_users+self.m_items]))
+            if self.edgeWeight:
+                data_half = torch.FloatTensor(self.trainValue)
+                data=torch.cat((data_half,data_half),dim=0)
+            else :
+                data = torch.ones(index.size(-1)).int()
+            self.Graph = torch.sparse.FloatTensor(index, data, torch.Size([self.n_users+self.m_items, self.n_users+self.m_items]))
             dense = self.Graph.to_dense()
             # Graph:
             # # U I 
