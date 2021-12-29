@@ -40,7 +40,7 @@ int dfs(int frm,int tos){
 int main (){
     // freopen("../data/small.txt","r",stdin);
     // freopen("../data/gowalla.train","r",stdin);
-    freopen("../data/gowalla.train","r",stdin);
+    freopen("../data/lastfm1.train","r",stdin);
     char ch;
     int aa,bb;
     // scanf("%d%c%d",&aa,&ch,&bb);
@@ -124,7 +124,7 @@ int main (){
     }
     printf("alpha:%lf\n",alpha);
     FILE* fp = 0;
-    if(( fp = freopen("output.txt", "w" ,stdout))==0){
+    if(( fp = freopen("output2.txt", "w" ,stdout))==0){
         printf("Cannot open file.\n");
         return 0; 
     }

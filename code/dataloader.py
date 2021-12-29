@@ -151,22 +151,30 @@ class LastFM(BasicDataset):
         self.mode    = self.mode_dict['train']
         # self.n_users = 1892
         # self.m_items = 4489
-        _trainData = pd.read_table(join(path, 'data1.txt'), header=None).to_numpy()
+        self.edgeWeight=True
+        if self.edgeWeight:
+            _trainData = pd.read_table(join(path, 'trainV2.txt'), header=None, sep=" ").to_numpy()
+            testData  = pd.read_table(join(path, 'testV2.txt'), header=None, sep=" ").to_numpy()
+        else :
+            _trainData = pd.read_table(join(path, 'data1.txt'), header=None).to_numpy()
+            testData  = pd.read_table(join(path, 'test1.txt'), header=None).to_numpy()
         # print(trainData.head())
-        testData  = pd.read_table(join(path, 'test1.txt'), header=None).to_numpy()
         # print(testData.head())
         trustNet  = pd.read_table(join(path, 'trustnetwork.txt'), header=None).to_numpy()
         # print(trustNet[:5])
         trustNet -= 1
-        _trainData-= 1
-        testData -= 1
+        # _trainData-= 1
         # print(_trainData.shape)
-        self.edgeWeight=False
         self.trainValue=None
         if self.edgeWeight:
+            onePrint("edgeWeight")
             self.trainValue=_trainData[:,2]
         trainData = _trainData[:,:2]
+        # trainData = np.astype(trainData,"int")
         trainData = trainData.astype("int")
+        if not self.edgeWeight:
+            testData -= 1
+            trainData -=1
         self.trainUser = np.array(trainData[:,0],dtype="int")
         self.trainItem = np.array(trainData[:,1],dtype="int")
         self.n_user = np.max(self.trainUser)
@@ -179,7 +187,7 @@ class LastFM(BasicDataset):
         self.old_m_item=self.m_item
         self.Old_UserItemNet=csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.old_n_user, self.old_m_item))
         
-        self.add_virtual_node = True 
+        self.add_virtual_node = False 
         if self.add_virtual_node:
             # print(trainData.shape)
             trainData=self.add_virtual_V2(trainData,self.trainUser,self.trainItem,12,1)
@@ -203,7 +211,7 @@ class LastFM(BasicDataset):
     # def __init_weight(self):
     
         # (users,users)
-        self.socialNet    = csr_matrix((np.ones(len(trustNet)), (trustNet[:,0], trustNet[:,1]) ), shape=(self.n_users,self.n_users))
+        # self.socialNet    = csr_matrix((np.ones(len(trustNet)), (trustNet[:,0], trustNet[:,1]) ), shape=(self.n_users,self.n_users)) # 这个是没有离散化的点
         # (users,items), bipartite graph
         self.UserItemNet  = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem) ), shape=(self.n_users,self.m_items)) 
         # pre-calculate
@@ -252,9 +260,11 @@ class LastFM(BasicDataset):
             if self.edgeWeight:
                 data_half = torch.FloatTensor(self.trainValue)
                 data=torch.cat((data_half,data_half),dim=0)
+                # data = torch.ones(index.size(-1)).int()
             else :
                 data = torch.ones(index.size(-1)).int()
             self.Graph = torch.sparse.FloatTensor(index, data, torch.Size([self.n_users+self.m_items, self.n_users+self.m_items]))
+            # print(self.Graph)
             dense = self.Graph.to_dense()
             # Graph:
             # # U I 
@@ -274,6 +284,7 @@ class LastFM(BasicDataset):
             self.Graph = self.Graph.coalesce().to(world.device)
 
             self.lowUser,self.lowItem = self.getLower(D)
+        print(self.Graph)
         return self.Graph
     
     def getLower(self,degree):
@@ -426,11 +437,11 @@ class Loader(BasicDataset):
         self.testUser = np.array(testUser)
         self.testItem = np.array(testItem)
 
-        self.add_virtual_node = True 
+        self.add_virtual_node = False 
         if self.add_virtual_node:
             trainData = np.stack((self.trainUser,self.trainItem),axis=1)
             # print(trainData.shape)
-            trainData=self.add_virtual_V2(trainData,self.trainUser,self.trainItem,12,1)
+            trainData=self.add_virtual_V2(trainData,self.trainUser,self.trainItem,8,6)
             self.trainUser=trainData[:][0]
             self.trainItem=trainData[:][1]
             

@@ -2,7 +2,7 @@ import sys,os
 # import numpy as np
 from collections import Counter
 fname = "./lastfm/data1.txt"
-tname = "test1.txt"
+tname = "./lastfm/test1.txt"
 m1=m2=0
 s1=set()
 s2=set()
@@ -15,11 +15,22 @@ def countDegree(lis):
     print(cou)
     sum=0
     tim=0
+    dic=dict()
     for i in cou:
         sum+=i[1]
-        if i[1]<=12:
-            tim+=1 
-    print(tim)
+        if i[1] in dic:
+            dic[i[1]]+=1
+        else :
+            dic[i[1]]=1; 
+        # if i[1]<=1:
+        #     tim+=1 
+    # print(tim)
+    liss=list(dic.items())
+    liss=sorted(liss,key=lambda x:x[0])
+    sum=0
+    for i in liss:
+        sum+=i[1]
+        print(i[0],"dic:",i[1], "sum",sum)
     # value = np.array(cou.values())
     # sum=np.sum(value)
     print(sum)
@@ -34,11 +45,28 @@ with open(fname,"r") as fin:
         s2.add(int(tmp[1]))
         lis1.append(int(tmp[0]))
         lis2.append(int(tmp[1]))
+    # for lin in content:
+    #     tmp=lin.split(" ")
+    #     # print(tmp)
+    #     a1=int(tmp[0])
+    #     t=tmp[1:]
+    #     for i in t:
+    #         i=int(i)
+            
+    #         m1=max(m1,a1)
+    #         m2=max(m2,i)
+    #         s1.add(a1)
+    #         s2.add(i)
+    #         lis1.append(a1)
+    #         lis2.append(i)
         # print(tmp[0],end=",")
         # print(tmp[1])
-countDegree(lis1) # 12 113
+# countDegree(lis1) # 12 113
 # countDegree(lis2) # 1 125
-exit(0)
+# gowalla  13.33%
+# user 8 4111 
+# item 6 3654
+# exit(0)
 
 print(m1,m2)
 print(len(s1))
@@ -57,8 +85,8 @@ dd=[]
 for i in range(len(lis1)):
     dd.append((d1[lis1[i]],d2[lis2[i]]))
     # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
-dd=sorted(dd)
-with open("lastfm.train","w") as ftrain:
+# dd=sorted(dd)
+with open("lastfm1.train","w") as ftrain:
     # for i in range(4476):
     #     print(f"0,{i}",file=ftrain)
     for i in range(len(dd)):
@@ -88,8 +116,31 @@ with open(tname,"r") as fin:
         dd.append((d1[a0],d2[a1]))
         # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
 
-dd=sorted(dd)
-with open("lastfm.test","w") as ftest:
+# dd=sorted(dd)
+with open("lastfm1.test","w") as ftest:
     for i in range(len(dd)):
         print(f"{dd[i][0]},{dd[i][1]}",file=ftest)
     
+# 8 dic: 4111
+# 9 dic: 1677
+# 10 dic: 1580
+# 11 dic: 1451
+# 12 dic: 2518
+# 13 dic: 1048
+# 14 dic: 973
+# 15 dic: 884
+# 16 dic: 1503
+# 17 dic: 689
+# 18 dic: 616
+
+# 1 dic: 8
+# 2 dic: 16
+# 3 dic: 45
+# 4 dic: 128
+# 5 dic: 409
+# 6 dic: 951
+# 7 dic: 2097
+# 8 dic: 3329
+# 9 dic: 4362
+# 10 dic: 4274
+# 11 dic: 3265
