@@ -66,17 +66,18 @@ dd=[]
 for i in range(len(lis1)):
     dd.append((d1[lis1[i]],d2[lis2[i]]))
     # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
-dd=sorted(dd)
-with open("gowalla.train","w") as ftrain:
-    # for i in range(4476):
-    #     print(f"0,{i}",file=ftrain)
-    for i in range(len(dd)):
-        # if dd[i][0]==0:
-        #     continue 
-        # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
-        print(f"{dd[i][0]},{dd[i][1]}",file=ftrain)
+# dd=sorted(dd)
+# with open("gowalla.train","w") as ftrain:
+#     # for i in range(4476):
+#     #     print(f"0,{i}",file=ftrain)
+#     for i in range(len(dd)):
+#         # if dd[i][0]==0:
+#         #     continue 
+#         # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
+#         print(f"{dd[i][0]},{dd[i][1]}",file=ftrain)
 
 dd=[]
+sizs=0
 with open(tname,"r") as fin:
     content=fin.readlines()
     for lin in content:
@@ -86,7 +87,8 @@ with open(tname,"r") as fin:
         t=tmp[1:]
         for i in t:
             i=int(i)
-            
+            sizs+=1
+    
             m1=max(m1,a1)
             m2=max(m2,i)
             s1.add(a1)
@@ -103,17 +105,22 @@ with open(tname,"r") as fin:
     #     m2=max(m2,a1)
     #     s1.add(a0)
     #     s2.add(a1)
-            a0=a1
-            a1=i    
+            # a0=a1
+            # a1=i
             # lis1.append(a0)
             # lis2.append(a1)
-            if a0 not in d1:
+            if a1 not in d1:
+                print(a1)
                 continue
-            if a1 not in d2:
+            if i not in d2:
+                print(i)
                 continue
             # for i in range(len(lis1)):
-            dd.append((d1[a0],d2[a1]))
+            dd.append((d1[a1],d2[i]))
         # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
+
+# print(sizs)
+# exit(0)
 
 dd=sorted(dd)
 with open("gowalla.test","w") as ftest:

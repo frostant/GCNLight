@@ -49,7 +49,7 @@ else:
     world.cprint("not enable tensorflowboard")
 
 from time import time
-breakNum=50
+breakNum=30
 tmp = [0.,0.,0]
 try:
     for epoch in range(world.TRAIN_epochs):

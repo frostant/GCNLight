@@ -83,7 +83,7 @@ class BasicDataset(Dataset):
 # result = Counter(a)
 # print (result)
 
-    def add_virtual_V2(self,data, user,item,limitU,limitI):
+    def add_virtual_V2(self,data, user,item,limitU,limitI,limitSiz):
         # 
         onePrint("addVirtualV2")
         from collections import Counter  
@@ -94,9 +94,10 @@ class BasicDataset(Dataset):
         coutUser=Counter(user)
         coutUser=sorted(coutUser.items(),key=lambda x:x[1])
         for (idx,sum) in coutUser:
-            if sum<=limitU:
+            if sum<=limitU and limitSiz>0:
                 add_node.append((idx,self.m_item)) # 开区间
                 self.m_item+=1
+                limitSiz -=1 
             else :
                 break
         print("add_Item",len(add_node))
@@ -151,7 +152,7 @@ class LastFM(BasicDataset):
         self.mode    = self.mode_dict['train']
         # self.n_users = 1892
         # self.m_items = 4489
-        self.edgeWeight=True
+        self.edgeWeight=False
         if self.edgeWeight:
             _trainData = pd.read_table(join(path, 'trainV2.txt'), header=None, sep=" ").to_numpy()
             testData  = pd.read_table(join(path, 'testV2.txt'), header=None, sep=" ").to_numpy()
@@ -190,7 +191,7 @@ class LastFM(BasicDataset):
         self.add_virtual_node = False 
         if self.add_virtual_node:
             # print(trainData.shape)
-            trainData=self.add_virtual_V2(trainData,self.trainUser,self.trainItem,12,1)
+            trainData=self.add_virtual_V2(trainData,self.trainUser,self.trainItem,12,1,100)
 
         self.trustNet  = trustNet
         self.trainData = trainData
@@ -390,69 +391,119 @@ class Loader(BasicDataset):
         self.mode = self.mode_dict['train']
         self.n_user = 0
         self.m_item = 0
-        train_file = path + '/train.txt'
-        test_file = path + '/test.txt'
+        self.edgeWeight=True
+        if self.edgeWeight:
+            train_file = path + '/output.txt'
+            test_file = path + '/gowalla.test'
+        else :
+            train_file = path + '/train.txt'
+            test_file = path + '/test.txt'
         self.path = path
         trainUniqueUsers, trainItem, trainUser = [], [], []
         testUniqueUsers, testItem, testUser = [], [], []
         self.traindataSize = 0
         self.testDataSize = 0
-
+        trainValue = []
         with open(train_file) as f:
-            for l in f.readlines():
-                if len(l) > 0:
-                    l = l.strip('\n').split(' ')
-                    items = [int(i) for i in l[1:]]
-                    uid = int(l[0])
-                    trainUniqueUsers.append(uid)
-                    trainUser.extend([uid] * len(items))
-                    trainItem.extend(items)
-                    self.m_item = max(self.m_item, max(items))
+            if not self.edgeWeight:
+                for l in f.readlines():
+                    if len(l) > 0:
+                        l = l.strip('\n').split(' ')
+                        items = [int(i) for i in l[1:]]
+                        uid = int(l[0])
+                        trainUniqueUsers.append(uid)
+                        trainUser.extend([uid] * len(items))
+                        trainItem.extend([items])
+                        trainValue.extend([1.0]*len(items))
+                        self.m_item = max(self.m_item, max(items))
+                        self.n_user = max(self.n_user, uid)
+                        self.traindataSize += len(items)
+            else :
+                trainUnique = set()
+                for l in f.readlines():
+                    l=l.strip('\n').split(' ')
+                    items = int(l[1])
+                    uid=int(l[0])
+                    trainUnique.add(uid)
+                    # trainUniqueUsers.append(uid)
+                    trainUser.extend([uid])
+                    trainItem.extend([items])
+                    trainValue.append(float(l[2])) 
                     self.n_user = max(self.n_user, uid)
-                    self.traindataSize += len(items)
+                    self.m_item=max(self.m_item, items)
+                    self.traindataSize+=1
+                trainUniqueUsers=list(trainUnique)
         # 输入数据可能是一行第一个是user,后面全是item, 或每行一个user-item..  
         # trainUser是所有user,trainItem是所有item 相互对应
         self.trainUniqueUsers = np.array(trainUniqueUsers)
         self.trainUser = np.array(trainUser)
         self.trainItem = np.array(trainItem)
+        self.trainValue = np.array(trainValue)
         print("SHape",self.trainUser.shape)
 
         with open(test_file) as f:
-            for l in f.readlines():
-                if len(l) > 0:
-                    l = l.strip('\n').split(' ')
-                    items = [int(i) for i in l[1:]]
-                    uid = int(l[0])
-                    testUniqueUsers.append(uid)
-                    testUser.extend([uid] * len(items))
-                    testItem.extend(items)
-                    self.m_item = max(self.m_item, max(items))
+            if not self.edgeWeight:
+                for l in f.readlines():
+                    if len(l) > 0:
+                        l = l.strip('\n').split(' ')
+                        items = [int(i) for i in l[1:]]
+                        uid = int(l[0])
+                        testUniqueUsers.append(uid)
+                        testUser.extend([uid] * len(items))
+                        testItem.append(items)
+                        self.m_item = max(self.m_item, max(items))
+                        self.n_user = max(self.n_user, uid)
+                        self.testDataSize += len(items)
+            else :
+                testUnique = set()
+                for l in f.readlines():
+                    l=l.strip('\n').split(' ')
+                    items = int(l[1])
+                    uid=int(l[0])
+                    testUnique.add(uid)
+                    # testUniqueUsers.append(uid)
+                    testUser.append(uid)
+                    testItem.append(items)
                     self.n_user = max(self.n_user, uid)
-                    self.testDataSize += len(items)
+                    self.m_item=max(self.m_item, items)
+                    self.testDataSize+=1
+                testUniqueUsers=list(testUnique)
+                
+                
         self.m_item += 1
         self.n_user += 1
         self.old_n_user=self.n_user
         self.old_m_item=self.m_item
+        if self.edgeWeight:
+            self.Old_UserItemNet = csr_matrix((self.trainValue, (self.trainUser, self.trainItem)), shape=(self.old_n_user, self.old_m_item))
+        else :
+            self.Old_UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.old_n_user, self.old_m_item))
         self.testUniqueUsers = np.array(testUniqueUsers)
         self.testUser = np.array(testUser)
         self.testItem = np.array(testItem)
 
-        self.add_virtual_node = False 
+        self.add_virtual_node = False
         if self.add_virtual_node:
             trainData = np.stack((self.trainUser,self.trainItem),axis=1)
-            # print(trainData.shape)
-            trainData=self.add_virtual_V2(trainData,self.trainUser,self.trainItem,8,6)
-            self.trainUser=trainData[:][0]
-            self.trainItem=trainData[:][1]
-            
+            print(trainData.shape)
+            # tt = np.stack((self.trainUser,self.trainItem),axis=0)
+            # print(tt.shape)
+            trainData=self.add_virtual_V2(trainData,self.trainUser,self.trainItem,8,6,2000)
+            self.trainUser=trainData[:,0]
+            self.trainItem=trainData[:,1]
+            print(len(self.trainUser),"  #  ",len(self.trainItem))
+            # value 没有填充！！！
+        # exit(0)
         self.Graph = None
         print(f"{self.trainDataSize} interactions for training")
         print(f"{self.testDataSize} interactions for testing")
         print(f"{world.dataset} Sparsity : {(self.trainDataSize + self.testDataSize) / self.n_users / self.m_items}")
         self.trainSparsity=self.trainDataSize/self.n_users/self.m_items
         # (users,items), bipartite graph
-        self.UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
-        self.Old_UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.old_n_user, self.old_m_item))
+        if self.edgeWeight:
+            self.UserItemNet = csr_matrix((self.trainValue, (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
+        else :
+            self.UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
         
         self.users_D = np.array(self.UserItemNet.sum(axis=1)).squeeze()
         self.users_D[self.users_D == 0.] = 1
@@ -505,6 +556,9 @@ class Loader(BasicDataset):
         
     def getSparseGraph(self):
         print("loading adjacency matrix")
+        print(self.n_users)
+        print(self.m_items)
+        print(self.UserItemNet.shape)
         if self.Graph is None:
             try:
                 pre_adj_mat = sp.load_npz(self.path + '/s_pre_adj_mat.npz')
@@ -520,6 +574,8 @@ class Loader(BasicDataset):
                 adj_mat[self.n_users:, :self.n_users] = R.T
                 adj_mat = adj_mat.todok()
                 # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
+                print(adj_mat)
+                print(adj_mat.shape)
                 
                 rowsum = np.array(adj_mat.sum(axis=1))
                 d_inv = np.power(rowsum, -0.5).flatten()
@@ -532,7 +588,8 @@ class Loader(BasicDataset):
                 end = time()
                 print(f"costing {end-s}s, saved norm_mat...")
                 sp.save_npz(self.path + '/s_pre_adj_mat.npz', norm_adj)
-
+            print(norm_adj)
+            print(norm_adj.shape)
             if self.split == True:
                 self.Graph = self._split_A_hat(norm_adj)
                 print("done split matrix")
@@ -540,6 +597,7 @@ class Loader(BasicDataset):
                 self.Graph = self._convert_sp_mat_to_sp_tensor(norm_adj)
                 self.Graph = self.Graph.coalesce().to(world.device)
                 print("don't split the matrix")
+        print(self.Graph)
         return self.Graph
 
     def __build_test(self):
