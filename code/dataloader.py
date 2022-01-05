@@ -153,6 +153,11 @@ class LastFM(BasicDataset):
         # self.n_users = 1892
         # self.m_items = 4489
         self.edgeWeight=False
+        self.edgeV2=True
+        self.edgeLog=True
+        if self.edgeV2:
+            _trainData = pd.read_table(join(path, 'outLastfm.train'), header=None, sep=" ").to_numpy()
+            testData  = pd.read_table(join(path, 'lastfm1.test'), header=None, sep=",").to_numpy()
         if self.edgeWeight:
             _trainData = pd.read_table(join(path, 'trainV2.txt'), header=None, sep=" ").to_numpy()
             testData  = pd.read_table(join(path, 'testV2.txt'), header=None, sep=" ").to_numpy()
@@ -170,6 +175,12 @@ class LastFM(BasicDataset):
         if self.edgeWeight:
             onePrint("edgeWeight")
             self.trainValue=_trainData[:,2]
+        if self.edgeV2:
+            onePrint("edgeWeightV2")
+            self.trainValue=_trainData[:,2]
+            if self.edgeLog:
+                onePrint("edgeLog")
+                self.trainValue=np.log(self.trainValue)
         trainData = _trainData[:,:2]
         # trainData = np.astype(trainData,"int")
         trainData = trainData.astype("int")
@@ -258,12 +269,29 @@ class LastFM(BasicDataset):
             second_sub = torch.stack([item_dim+self.n_users, user_dim])
             # 1 user item 2 item user
             index = torch.cat([first_sub, second_sub], dim=1)
-            if self.edgeWeight:
+            if self.edgeV2:
+                data_half = torch.FloatTensor(self.trainValue)
+                data=torch.cat((data_half,data_half),dim=0)
+            elif self.edgeWeight:
                 data_half = torch.FloatTensor(self.trainValue)
                 data=torch.cat((data_half,data_half),dim=0)
                 # data = torch.ones(index.size(-1)).int()
             else :
                 data = torch.ones(index.size(-1)).int()
+            self.selfCon = False
+            if self.selfCon:
+                self_lis = [x for x in range(self.n_users+self.m_items)]
+                self_lis = torch.LongTensor(self_lis).t()
+                if self.edgeV2: #!!!
+                    one_lis = [1.0 for x in range(self.n_users+self.m_items)]
+                if self.edgeWeight:
+                    one_lis = [2.0 for x in range(self.n_users+self.m_items)]
+                else :
+                    one_lis = [1.0 for x in range(self.n_users+self.m_items)]
+                one_lis = torch.LongTensor(one_lis)
+                self_sub = torch.stack([self_lis, self_lis])
+                index = torch.cat([index, self_sub],dim=1)
+                data = torch.cat([data, one_lis])
             self.Graph = torch.sparse.FloatTensor(index, data, torch.Size([self.n_users+self.m_items, self.n_users+self.m_items]))
             # print(self.Graph)
             dense = self.Graph.to_dense()
