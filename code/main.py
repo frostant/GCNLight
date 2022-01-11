@@ -67,9 +67,9 @@ try:
         start = time()
         output_information = Procedure.BPR_train_original(dataset, Recmodel, bpr, epoch, neg_k=Neg_k,w=w)
         during = time()-start
-        print(f"{during:.2f}")
-
-        print(f'EPOCH[{epoch+1}/{world.TRAIN_epochs}] {output_information}')
+        # print(f"{during:.2f}")
+        if epoch %10 == 0:
+            print(f'EPOCH[{epoch+1}/{world.TRAIN_epochs}] {output_information}')
         torch.save(Recmodel.state_dict(), weight_file)
         # 存参数
 finally:

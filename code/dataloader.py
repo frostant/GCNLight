@@ -154,7 +154,10 @@ class LastFM(BasicDataset):
         # self.m_items = 4489
         self.edgeWeight=False
         self.edgeV2=True
-        self.edgeLog=True
+        self.edgeLog=False
+        if self.edgeV2 and self.edgeWeight:
+            print("EDGE weight error")
+            exit(0)
         if self.edgeV2:
             _trainData = pd.read_table(join(path, 'outLastfm.train'), header=None, sep=" ").to_numpy()
             testData  = pd.read_table(join(path, 'lastfm1.test'), header=None, sep=",").to_numpy()
@@ -180,7 +183,7 @@ class LastFM(BasicDataset):
             self.trainValue=_trainData[:,2]
             if self.edgeLog:
                 onePrint("edgeLog")
-                self.trainValue=np.log(self.trainValue)
+                self.trainValue=np.log(self.trainValue)+1
         trainData = _trainData[:,:2]
         # trainData = np.astype(trainData,"int")
         trainData = trainData.astype("int")
@@ -419,13 +422,25 @@ class Loader(BasicDataset):
         self.mode = self.mode_dict['train']
         self.n_user = 0
         self.m_item = 0
-        self.edgeWeight=True
-        if self.edgeWeight:
+        self.edgeWeight=False
+        self.edgeV2=True
+        self.edgeLog=False
+        print("self.edgeWeight:",self.edgeWeight)
+        print("self.edgeV2:",self.edgeV2)
+        print("self.edgeLog:",self.edgeLog)
+        if self.edgeV2 and self.edgeWeight:
+            print("EDGE weight error")
+            exit(0)
+        if self.edgeV2:
+            train_file = path+'/gowaProcessV2.train'
+            test_file = path + '/gowalla2.test'
+        elif self.edgeWeight:
             train_file = path + '/output.txt'
             test_file = path + '/gowalla.test'
         else :
             train_file = path + '/train.txt'
             test_file = path + '/test.txt'
+        
         self.path = path
         trainUniqueUsers, trainItem, trainUser = [], [], []
         testUniqueUsers, testItem, testUser = [], [], []
@@ -433,23 +448,11 @@ class Loader(BasicDataset):
         self.testDataSize = 0
         trainValue = []
         with open(train_file) as f:
-            if not self.edgeWeight:
-                for l in f.readlines():
-                    if len(l) > 0:
-                        l = l.strip('\n').split(' ')
-                        items = [int(i) for i in l[1:]]
-                        uid = int(l[0])
-                        trainUniqueUsers.append(uid)
-                        trainUser.extend([uid] * len(items))
-                        trainItem.extend([items])
-                        trainValue.extend([1.0]*len(items))
-                        self.m_item = max(self.m_item, max(items))
-                        self.n_user = max(self.n_user, uid)
-                        self.traindataSize += len(items)
-            else :
+            if self.edgeWeight:
+                onePrint("edgeWeight")
                 trainUnique = set()
                 for l in f.readlines():
-                    l=l.strip('\n').split(' ')
+                    l=l.strip('\n').split()
                     items = int(l[1])
                     uid=int(l[0])
                     trainUnique.add(uid)
@@ -461,6 +464,41 @@ class Loader(BasicDataset):
                     self.m_item=max(self.m_item, items)
                     self.traindataSize+=1
                 trainUniqueUsers=list(trainUnique)
+            elif self.edgeV2:
+                onePrint("edgeV2")
+                trainUnique = set()
+                for l in f.readlines():
+                    l=l.strip('\n').split()
+                    items = int(l[1])
+                    uid=int(l[0])
+                    trainUnique.add(uid)
+                    # trainUniqueUsers.append(uid)
+                    trainUser.extend([uid])
+                    trainItem.extend([items])
+                    trainValue.append(float(l[2])) 
+
+                    self.n_user = max(self.n_user, uid)
+                    self.m_item=max(self.m_item, items)
+                    self.traindataSize+=1
+                if self.edgeLog:
+                    onePrint("edgeLog")
+                    trainValue=np.log(trainValue)
+                # trainValue=np.ones(len(trainItem))
+                trainUniqueUsers=list(trainUnique)
+            else :
+                for l in f.readlines():
+                    if len(l) > 0:
+                        l = l.strip('\n').split()
+                        items = [int(i) for i in l[1:]]
+                        uid = int(l[0])
+                        trainUniqueUsers.append(uid)
+                        trainUser.extend([uid] * len(items))
+                        trainItem.extend([items])
+                        trainValue.extend([1.0]*len(items))
+                        self.m_item = max(self.m_item, max(items))
+                        self.n_user = max(self.n_user, uid)
+                        self.traindataSize += len(items)
+                
         # 输入数据可能是一行第一个是user,后面全是item, 或每行一个user-item..  
         # trainUser是所有user,trainItem是所有item 相互对应
         self.trainUniqueUsers = np.array(trainUniqueUsers)
@@ -470,7 +508,21 @@ class Loader(BasicDataset):
         print("SHape",self.trainUser.shape)
 
         with open(test_file) as f:
-            if not self.edgeWeight:
+            if self.edgeWeight or self.edgeV2:
+                testUnique = set()
+                for l in f.readlines():
+                    l=l.strip('\n').split(",")
+                    items = int(l[1])
+                    uid=int(l[0])
+                    testUnique.add(uid)
+                    # testUniqueUsers.append(uid)
+                    testUser.append(uid)
+                    testItem.append(items)
+                    self.n_user = max(self.n_user, uid)
+                    self.m_item=max(self.m_item, items)
+                    self.testDataSize+=1
+                testUniqueUsers=list(testUnique)
+            else :
                 for l in f.readlines():
                     if len(l) > 0:
                         l = l.strip('\n').split(' ')
@@ -482,27 +534,13 @@ class Loader(BasicDataset):
                         self.m_item = max(self.m_item, max(items))
                         self.n_user = max(self.n_user, uid)
                         self.testDataSize += len(items)
-            else :
-                testUnique = set()
-                for l in f.readlines():
-                    l=l.strip('\n').split(' ')
-                    items = int(l[1])
-                    uid=int(l[0])
-                    testUnique.add(uid)
-                    # testUniqueUsers.append(uid)
-                    testUser.append(uid)
-                    testItem.append(items)
-                    self.n_user = max(self.n_user, uid)
-                    self.m_item=max(self.m_item, items)
-                    self.testDataSize+=1
-                testUniqueUsers=list(testUnique)
                 
                 
         self.m_item += 1
         self.n_user += 1
         self.old_n_user=self.n_user
         self.old_m_item=self.m_item
-        if self.edgeWeight:
+        if self.edgeWeight or self.edgeV2:
             self.Old_UserItemNet = csr_matrix((self.trainValue, (self.trainUser, self.trainItem)), shape=(self.old_n_user, self.old_m_item))
         else :
             self.Old_UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.old_n_user, self.old_m_item))
@@ -528,7 +566,7 @@ class Loader(BasicDataset):
         print(f"{world.dataset} Sparsity : {(self.trainDataSize + self.testDataSize) / self.n_users / self.m_items}")
         self.trainSparsity=self.trainDataSize/self.n_users/self.m_items
         # (users,items), bipartite graph
-        if self.edgeWeight:
+        if self.edgeWeight or self.edgeV2:
             self.UserItemNet = csr_matrix((self.trainValue, (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
         else :
             self.UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))

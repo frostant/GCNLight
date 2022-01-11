@@ -26,15 +26,18 @@ with open(path,"r") as fin:
         maxU=max(maxU,a1)
         maxI=max(maxI,a2)
         point.append((a1,a2))
+        
 maxU+=1
 maxI+=1
 n=maxU+maxI
 du=np.zeros(n)
 adj=np.zeros((n,n))
+print("SSSS")
 index1=list()
 index2=list()
 index = list()
 data=list()
+mat=torch.zeros((n,n))
 for (a1,a2) in point:
     adj[a1,a2+maxU]+=1
     adj[a2+maxU,a1]+=1
@@ -44,10 +47,14 @@ for (a1,a2) in point:
     index1.append(a2+maxU)
     index2.append(a2+maxU)
     index2.append(a1)
+    mat[a1,a2+maxU]=1
+    mat[a2+maxU,a1]=1
+    
     # index.append((a1,a2+maxU))
     # index.append((a2+maxU,a1))
     data.append(1)
     data.append(1)
+print("@#@#%#@")
 
 index1=torch.LongTensor(index1)
 index2=torch.LongTensor(index2)
@@ -55,6 +62,23 @@ index=torch.stack([index1,index2],dim=0)
 # index=torch.
 data=torch.FloatTensor(data)
 sprmat=torch.sparse.FloatTensor(index,data,torch.Size([n,n]))
+# mat = sprmat.to_dense()
+dim=1024
+matList=list()
+print(n," # ",int(n/dim))
+for i in range(int(n/dim)):
+    matList.append(mat[:,i*dim:(i+1)*dim])
+
+mat2List=list()
+for tmat in matList:
+    mat2List.append(torch.sparse.mm(sprmat,tmat))
+    
+print("mats2")
+mat3List=list()
+for tmat in mat2List:
+    mat3List.append(torch.sparse.mm(sprmat,tmat))
+print("mats3")
+exit(0)
 mat2=torch.sparse.mm(sprmat, sprmat)
 print(mat2)
 print("mat2")

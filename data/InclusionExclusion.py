@@ -5,7 +5,7 @@ print("SG")
 maxU=0
 maxI=0
 point=list()
-with open("lastfm.train","r") as fin:
+with open("gowalla.train","r") as fin:
     for lin in fin.readlines():
         a1,a2=lin.strip("\n").split(",")[:2]
         a1=int(a1)

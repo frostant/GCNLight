@@ -30,7 +30,7 @@ def countDegree(lis):
 with open(fname,"r") as fin:
     content=fin.readlines()
     for lin in content:
-        tmp=lin.split(" ")
+        tmp=lin.split()
         # print(tmp)
         a1=int(tmp[0])
         t=tmp[1:]
@@ -67,22 +67,21 @@ for i in range(len(lis1)):
     dd.append((d1[lis1[i]],d2[lis2[i]]))
     # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
 # dd=sorted(dd)
-# with open("gowalla.train","w") as ftrain:
-#     # for i in range(4476):
-#     #     print(f"0,{i}",file=ftrain)
-#     for i in range(len(dd)):
-#         # if dd[i][0]==0:
-#         #     continue 
-#         # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
-#         print(f"{dd[i][0]},{dd[i][1]}",file=ftrain)
+with open("gowalla2.train","w") as ftrain:
+    # for i in range(4476):
+    #     print(f"0,{i}",file=ftrain)
+    for i in range(len(dd)):
+        # if dd[i][0]==0:
+        #     continue 
+        # print(f"{d1[lis1[i]]},{d2[lis2[i]]}",file=ftrain)
+        print(f"{dd[i][0]},{dd[i][1]}",file=ftrain)
 
 dd=[]
 sizs=0
 with open(tname,"r") as fin:
     content=fin.readlines()
     for lin in content:
-        tmp=lin.split(" ")
-        # print(tmp)
+        tmp=lin.split()
         a1=int(tmp[0])
         t=tmp[1:]
         for i in t:
@@ -122,8 +121,8 @@ with open(tname,"r") as fin:
 # print(sizs)
 # exit(0)
 
-dd=sorted(dd)
-with open("gowalla.test","w") as ftest:
+# dd=sorted(dd)
+with open("gowalla2.test","w") as ftest:
     for i in range(len(dd)):
         print(f"{dd[i][0]},{dd[i][1]}",file=ftest)
     

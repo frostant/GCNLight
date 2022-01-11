@@ -36,6 +36,8 @@ def parse_args():
                         help="@k test list")
     parser.add_argument('--tensorboard', type=int,default=1,
                         help="enable tensorboard")
+    parser.add_argument('--cudas', type=str,default="0",
+                        help="the id of cuda")
     parser.add_argument('--comment', type=str,default="lgn")
     parser.add_argument('--load', type=int,default=0)
     parser.add_argument('--epochs', type=int,default=1000)
