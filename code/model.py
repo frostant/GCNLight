@@ -149,6 +149,9 @@ class LightGCN(BasicModel):
         self.Graph = self.dataset.getSparseGraph()
         print(f"lgn is already to go(dropout:{self.config['dropout']})")
 
+    def graphChange(self):
+        self.Graph = self.dataset.graphChange()
+        return self.Graph
         # print("save_txt")
     def __dropout_x(self, x, keep_prob):
         # keep prob 保留神经元的概率, 类似1-dropout的rate

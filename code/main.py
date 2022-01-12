@@ -72,6 +72,9 @@ try:
             print(f'EPOCH[{epoch+1}/{world.TRAIN_epochs}] {output_information}')
         torch.save(Recmodel.state_dict(), weight_file)
         # 存参数
+        if (epoch+1)%200==0:
+            print("Graph change")
+            Recmodel.graph=Recmodel.GraphChange()
 finally:
     if world.tensorboard:
         w.close()

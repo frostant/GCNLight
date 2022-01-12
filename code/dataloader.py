@@ -180,7 +180,7 @@ class LastFM(BasicDataset):
             self.trainValue=_trainData[:,2]
         if self.edgeV2:
             onePrint("edgeWeightV2")
-            self.trainValue=_trainData[:,2]
+            self.trainValue=_trainData[:,2]+1
             if self.edgeLog:
                 onePrint("edgeLog")
                 self.trainValue=np.log(self.trainValue)+1
@@ -319,6 +319,87 @@ class LastFM(BasicDataset):
         print(self.Graph)
         return self.Graph
     
+    def UserItemChangeV1(self):
+        self.valueRate=0.8
+        onePrint("rate"+str(self.valueRate))
+        self.trainValue=self.valueRate*self.trainValue+(1-self.valueRate)
+        return 
+    
+    def UserItemChangeV2(self):
+        # self.valueRate=0.8
+        # import math
+        onePrint("Sqrt")
+        # self.trainValue=self.valueRate*self.trainValue+(1-self.valueRate)
+        self.trainValue=np.sqrt(self.trainValue)
+        
+        return 
+        
+    def GraphChange(self):
+        self.edgeSmooth=True
+        if not self.edgeSmooth:
+            return self.Graph
+        onePrint("edgeSmooth")
+        print("loading adjacency matrix")
+        # print(self.n_users)
+        # print(self.m_items)
+        # print(self.UserItemNet.shape)
+        self.UserItemChangeV2()
+        
+        
+        user_dim = torch.LongTensor(self.trainUser)
+        item_dim = torch.LongTensor(self.trainItem)
+        
+        first_sub = torch.stack([user_dim, item_dim + self.n_users])
+        second_sub = torch.stack([item_dim+self.n_users, user_dim])
+        # 1 user item 2 item user
+        index = torch.cat([first_sub, second_sub], dim=1)
+        if self.edgeV2:
+            data_half = torch.FloatTensor(self.trainValue)
+            data=torch.cat((data_half,data_half),dim=0)
+        elif self.edgeWeight:
+            data_half = torch.FloatTensor(self.trainValue)
+            data=torch.cat((data_half,data_half),dim=0)
+            # data = torch.ones(index.size(-1)).int()
+        else :
+            data = torch.ones(index.size(-1)).int()
+        self.selfCon = False
+        if self.selfCon:
+            self_lis = [x for x in range(self.n_users+self.m_items)]
+            self_lis = torch.LongTensor(self_lis).t()
+            if self.edgeV2: #!!!
+                one_lis = [1.0 for x in range(self.n_users+self.m_items)]
+            if self.edgeWeight:
+                one_lis = [2.0 for x in range(self.n_users+self.m_items)]
+            else :
+                one_lis = [1.0 for x in range(self.n_users+self.m_items)]
+            one_lis = torch.LongTensor(one_lis)
+            self_sub = torch.stack([self_lis, self_lis])
+            index = torch.cat([index, self_sub],dim=1)
+            data = torch.cat([data, one_lis])
+        self.Graph = torch.sparse.FloatTensor(index, data, torch.Size([self.n_users+self.m_items, self.n_users+self.m_items]))
+        # print(self.Graph)
+        dense = self.Graph.to_dense()
+        # Graph:
+        # # U I 
+        # U 0 1
+        # I 2 0 
+        # 1 is first sub 2 is second sub
+        D = torch.sum(dense, dim=1).float()
+        D[D==0.] = 1.
+        D_sqrt = torch.sqrt(D).unsqueeze(dim=0)
+        dense = dense/D_sqrt
+        dense = dense/D_sqrt.t()
+        index = dense.nonzero()
+        data  = dense[dense >= 1e-9]
+        # D is 度矩阵
+        assert len(index) == len(data)
+        self.Graph = torch.sparse.FloatTensor(index.t(), data, torch.Size([self.n_users+self.m_items, self.n_users+self.m_items]))
+        self.Graph = self.Graph.coalesce().to(world.device)
+
+        self.lowUser,self.lowItem = self.getLower(D)
+        print(self.Graph)
+        return self.Graph
+    
     def getLower(self,degree):
         # meanDegree=(self.trainUser/self.n_users,self.trainUser/self.m_items)
         # meanDegree
@@ -416,6 +497,7 @@ class Loader(BasicDataset):
     def __init__(self,config = world.config,path="../data/gowalla"):
         # train or test
         cprint(f'loading [{path}]')
+        self.notFirst=False
         self.split = config['A_split']
         self.folds = config['A_n_fold']
         self.mode_dict = {'train': 0, "test": 1}
@@ -504,7 +586,7 @@ class Loader(BasicDataset):
         self.trainUniqueUsers = np.array(trainUniqueUsers)
         self.trainUser = np.array(trainUser)
         self.trainItem = np.array(trainItem)
-        self.trainValue = np.array(trainValue)
+        self.trainValue = np.array(trainValue)+1
         print("SHape",self.trainUser.shape)
 
         with open(test_file) as f:
@@ -663,6 +745,73 @@ class Loader(BasicDataset):
                 self.Graph = self._convert_sp_mat_to_sp_tensor(norm_adj)
                 self.Graph = self.Graph.coalesce().to(world.device)
                 print("don't split the matrix")
+        print(self.Graph)
+        return self.Graph
+    def UserItemChangeV1(self):
+        self.valueRate=0.9
+        onePrint("rate"+str(self.valueRate))
+        self.trainValue=self.trainValue*self.valueRate+(1-self.valueRate)
+        self.UserItemNet = csr_matrix((self.trainValue, (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
+    
+    def UserItemChangeV2(self):
+        # self.valueRate=0.9
+        onePrint("changeSqrt")
+        self.trainValue=np.sqrt(self.trainValue)
+        self.UserItemNet = csr_matrix((self.trainValue, (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
+        
+    def GraphChange(self):
+        self.edgeSmooth=True
+        if not self.edgeSmooth:
+            return self.Graph
+        onePrint("edgeSmooth")
+        print("loading adjacency matrix")
+        print(self.n_users)
+        print(self.m_items)
+        print(self.UserItemNet.shape)
+        # if self.notFirst:
+        self.UserItemChangeV2()
+        # else :
+        #     self.notFirst=True
+        # if self.Graph is None:
+            # try:
+            #     pre_adj_mat = sp.load_npz(self.path + '/s_pre_adj_mat.npz')
+            #     print("successfully loaded...")
+            #     norm_adj = pre_adj_mat
+            # except :
+        print("generating adjacency matrix")
+        s = time()
+        adj_mat = sp.dok_matrix((self.n_users + self.m_items, self.n_users + self.m_items), dtype=np.float32)
+        adj_mat = adj_mat.tolil()
+        R = self.UserItemNet.tolil()
+        adj_mat[:self.n_users, self.n_users:] = R
+        adj_mat[self.n_users:, :self.n_users] = R.T
+        adj_mat = adj_mat.todok()
+        # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
+        print(adj_mat)
+        print(adj_mat.shape)
+        
+        rowsum = np.array(adj_mat.sum(axis=1))
+        d_inv = np.power(rowsum, -0.5).flatten()
+        d_inv[np.isinf(d_inv)] = 0.
+        d_mat = sp.diags(d_inv)
+        
+        norm_adj = d_mat.dot(adj_mat)
+        norm_adj = norm_adj.dot(d_mat)
+        norm_adj = norm_adj.tocsr()
+        end = time()
+        # print(f"costing {end-s}s, saved norm_mat...")
+        # sp.save_npz(self.path + '/s_pre_adj_mat.npz', norm_adj)
+        ####
+        print(norm_adj)
+        print(norm_adj.shape)
+        if self.split == True:
+            self.Graph = self._split_A_hat(norm_adj)
+            print("done split matrix")
+        else:
+            self.Graph = self._convert_sp_mat_to_sp_tensor(norm_adj)
+            self.Graph = self.Graph.coalesce().to(world.device)
+            print("don't split the matrix")
+            
         print(self.Graph)
         return self.Graph
 
