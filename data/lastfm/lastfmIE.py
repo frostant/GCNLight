@@ -1,5 +1,8 @@
 import sys,os
 import numpy as np
+import time
+start =time.time()
+
 print("SG")
 # Inclusion-Exclusion
 maxU=0
@@ -43,7 +46,7 @@ print(rank4)
 for i in range(n):
     tt=rank[i,i]-adj2[i,i]*adj2[i,i]-du2[i]+adj2[i,i]
     tt/=2
-    print(i," self ",tt)
+    # print(i," self ",tt)
 
 # with open(trainOut,"w") as fwi:
 #     for (a1,a2) in point:
@@ -79,6 +82,10 @@ maxt=0
 sumt=0
 siz=0
 zer=0
+
+#中间写上代码块
+end = time.time()
+print('Running time: %s Seconds'%(end-start))
 
 with open(testPath,"r") as fout:
     with open(testOut,"w") as fwo:

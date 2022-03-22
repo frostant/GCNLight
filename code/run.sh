@@ -1,5 +1,5 @@
 #!bin/bash
-set -x
+# set -x
 
 time2=$(date "+%m%d%H%M")
 echo $time2
