@@ -507,9 +507,13 @@ class Loader(BasicDataset):
         self.edgeWeight=False
         self.edgeV2=True
         self.edgeLog=False
+        self.edgeRan=True 
+        self.duNorm=False
         print("self.edgeWeight:",self.edgeWeight)
         print("self.edgeV2:",self.edgeV2)
         print("self.edgeLog:",self.edgeLog)
+        print("self.edgeRan:",self.edgeRan)
+        print("self.duNorm:",self.duNorm)
         if self.edgeV2 and self.edgeWeight:
             print("EDGE weight error")
             exit(0)
@@ -565,6 +569,12 @@ class Loader(BasicDataset):
                 if self.edgeLog:
                     onePrint("edgeLog")
                     trainValue=np.log(trainValue)
+                if self.edgeRan:
+                    onePrint("edgeRan")
+                    np.random.seed(2020)
+                    trainValue=np.random.uniform(1,100,len(trainValue))
+                    # np.random.uniform(low=0.0, high=1.0, size=None)
+
                 # trainValue=np.ones(len(trainItem))
                 trainUniqueUsers=list(trainUnique)
             else :
@@ -727,9 +737,8 @@ class Loader(BasicDataset):
             print(adj_mat)
             print(adj_mat.shape)
             
-            new_norm=True
-            if new_norm:
-                onePrint("du_norm")
+            if self.duNorm:
+                onePrint("duNorm")
                 du_mat = sp.dok_matrix((self.n_users + self.m_items, self.n_users + self.m_items), dtype=np.float32)
                 du_mat = du_mat.tolil()
                 R = self.UserItemCon.tolil()
