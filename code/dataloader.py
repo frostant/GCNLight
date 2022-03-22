@@ -587,6 +587,7 @@ class Loader(BasicDataset):
         self.trainUser = np.array(trainUser)
         self.trainItem = np.array(trainItem)
         self.trainValue = np.array(trainValue)+1
+        self.duValue = np.ones(len(trainUser))
         print("SHape",self.trainUser.shape)
 
         with open(test_file) as f:
@@ -650,6 +651,7 @@ class Loader(BasicDataset):
         # (users,items), bipartite graph
         if self.edgeWeight or self.edgeV2:
             self.UserItemNet = csr_matrix((self.trainValue, (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
+            self.UserItemCon = csr_matrix((self.duValue, (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
         else :
             self.UserItemNet = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.n_user, self.m_item))
         
@@ -708,34 +710,49 @@ class Loader(BasicDataset):
         print(self.m_items)
         print(self.UserItemNet.shape)
         if self.Graph is None:
-            try:
-                pre_adj_mat = sp.load_npz(self.path + '/s_pre_adj_mat.npz')
-                print("successfully loaded...")
-                norm_adj = pre_adj_mat
-            except :
-                print("generating adjacency matrix")
-                s = time()
-                adj_mat = sp.dok_matrix((self.n_users + self.m_items, self.n_users + self.m_items), dtype=np.float32)
-                adj_mat = adj_mat.tolil()
-                R = self.UserItemNet.tolil()
-                adj_mat[:self.n_users, self.n_users:] = R
-                adj_mat[self.n_users:, :self.n_users] = R.T
-                adj_mat = adj_mat.todok()
-                # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
-                print(adj_mat)
-                print(adj_mat.shape)
-                
+            # try:
+                # pre_adj_mat = sp.load_npz(self.path + '/s_pre_adj_mat.npz')
+                # print("successfully loaded...")
+                # norm_adj = pre_adj_mat
+            # except :
+            print("generating adjacency matrix")
+            s = time()
+            adj_mat = sp.dok_matrix((self.n_users + self.m_items, self.n_users + self.m_items), dtype=np.float32)
+            adj_mat = adj_mat.tolil()
+            R = self.UserItemNet.tolil()
+            adj_mat[:self.n_users, self.n_users:] = R
+            adj_mat[self.n_users:, :self.n_users] = R.T
+            adj_mat = adj_mat.todok()
+            # adj_mat = adj_mat + sp.eye(adj_mat.shape[0])
+            print(adj_mat)
+            print(adj_mat.shape)
+            
+            new_norm=True
+            if new_norm:
+                onePrint("du_norm")
+                du_mat = sp.dok_matrix((self.n_users + self.m_items, self.n_users + self.m_items), dtype=np.float32)
+                du_mat = du_mat.tolil()
+                R = self.UserItemCon.tolil()
+                du_mat[:self.n_users, self.n_users:] = R
+                du_mat[self.n_users:, :self.n_users] = R.T
+                du_mat = du_mat.todok()
+                print(du_mat)
+                rowsum = np.array(du_mat.sum(axis=1))
+                print(rowsum)
+            else :
                 rowsum = np.array(adj_mat.sum(axis=1))
-                d_inv = np.power(rowsum, -0.5).flatten()
-                d_inv[np.isinf(d_inv)] = 0.
-                d_mat = sp.diags(d_inv)
-                
-                norm_adj = d_mat.dot(adj_mat)
-                norm_adj = norm_adj.dot(d_mat)
-                norm_adj = norm_adj.tocsr()
-                end = time()
-                print(f"costing {end-s}s, saved norm_mat...")
-                sp.save_npz(self.path + '/s_pre_adj_mat.npz', norm_adj)
+            d_inv = np.power(rowsum, -0.5).flatten()
+            d_inv[np.isinf(d_inv)] = 0.
+            d_mat = sp.diags(d_inv)
+            
+            norm_adj = d_mat.dot(adj_mat)
+            norm_adj = norm_adj.dot(d_mat)
+            norm_adj = norm_adj.tocsr()
+            end = time()
+            print(f"costing {end-s}s, saved norm_mat...")
+            # sp.save_npz(self.path + '/s_pre_adj_mat.npz', norm_adj)
+
+            # except end 
             print(norm_adj)
             print(norm_adj.shape)
             if self.split == True:
