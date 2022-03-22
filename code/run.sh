@@ -21,21 +21,20 @@ echo $1
 # # python main.py --decay=1e-4 --lr=0.001 --layer=1 --seed=2020 --dataset="lastfm" --topks="[20]" --recdim=64
 
 
-decay=1e-4 
+decay=0.0005
 lr=0.001 
 layer=1 
 seed=2020 
-dataset=lastfm
+dataset=gowalla
 topks=[20]
 recdim=64
 dropout=0
 keepprob=0.5
-epochs=100
+epochs=1500
 output=${dataset}_${layer}_${lr}_${keepprob}_${decay}_${time2}_$1.txt
 echo $output
 outputDir=result
-python main.py --decay=$decay --lr=$lr --layer=$layer --seed=$seed --dataset=$dataset --topks=$topks --dropout=$dropout --keepprob=$keepprob --epochs=$epochs --recdim=$recdim 
-# > ${outputDir}/${output}
+python -u main.py --decay=$decay --lr=$lr --layer=$layer --seed=$seed --dataset=$dataset --topks=$topks --dropout=$dropout --keepprob=$keepprob --epochs=$epochs --recdim=$recdim > ${outputDir}/${output}
 
 
 echo "Finish!"
