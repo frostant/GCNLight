@@ -57,6 +57,7 @@ ndcg_lis=[]
 precision_lis=[]
 index_lis=[]
 loss_lis=[]
+GraphChange=False
 try:
     for epoch in range(world.TRAIN_epochs):
         if epoch %10 == 0:
@@ -82,8 +83,8 @@ try:
             print(f'EPOCH[{epoch+1}/{world.TRAIN_epochs}] {output_information}')
         torch.save(Recmodel.state_dict(), weight_file)
         # 存参数
-        if (epoch+1)%200==0:
-            print("Graph change")
+        if (epoch+1)%200==0 and GraphChange:
+            onePrint("Graph change")
             Recmodel.graph=Recmodel.GraphChange()
 finally:
     if world.tensorboard:
