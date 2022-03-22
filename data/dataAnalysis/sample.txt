@@ -1,0 +1,13 @@
+load and save to ./light-gcn/code/checkpoints/lgn-gowalla-1-64.pth.tar
+[0;30;43m[TEST][0m
+{'precision': array([0.00125092]), 'recall': array([0.00374194]), 'ndcg': array([0.00244197])}
+#####W######
+5.69
+[array([0.00374194]), array([0.00244197]), 0]
+EPOCH[1/1500] loss0.614-|Sample:10.89|
+[0;30;43m[TEST][0m
+{'precision': array([0.01268169]), 'recall': array([0.05138332]), 'ndcg': array([0.03167181])153}
+#####W######
+5.43
+[array([0.05138332]), array([0.03167181]), 0]
+EPOCH[11/1500] loss0.296-|Sample:10.77|
