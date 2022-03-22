@@ -9,6 +9,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 import time
 import Procedure
+from matplotlib import pyplot as plt
 from os.path import join
 # ==============================
 utils.set_seed(world.seed)
@@ -51,6 +52,11 @@ else:
 from time import time
 breakNum=30
 tmp = [0.,0.,0]
+recall_lis=[]
+ndcg_lis=[]
+precision_lis=[]
+index_lis=[]
+loss_lis=[]
 try:
     for epoch in range(world.TRAIN_epochs):
         if epoch %10 == 0:
@@ -60,12 +66,16 @@ try:
             during = time()-start
             print(f"{during:.2f}")
             print(tmp)
+            recall_lis.append(result["recall"])
+            ndcg_lis.append(result["ndcg"])
+            precision_lis.append(result["precision"])
             if tmp[2]>breakNum:
                 print("Beak because no update")
                 break
 
         start = time()
-        output_information = Procedure.BPR_train_original(dataset, Recmodel, bpr, epoch, neg_k=Neg_k,w=w)
+        output_information,loss = Procedure.BPR_train_original(dataset, Recmodel, bpr, epoch, neg_k=Neg_k,w=w)
+        loss_lis.append(loss)
         during = time()-start
         # print(f"{during:.2f}")
         if epoch %10 == 0:
@@ -88,3 +98,14 @@ if printParam:
         torch.set_printoptions(profile="full")
         for parameters in Recmodel.parameters():#打印出参数矩阵及值
             print(parameters,file=fout)
+
+index_lis=range(len(recall_lis))
+plt.plot(index_lis,recall_lis)
+plt.plot(index_lis,ndcg_lis)
+plt.plot(index_lis,precision_lis)
+plt.savefig('./导出的图片.png')
+plt.figure(2)
+loss_idx=range(len(loss_lis))
+plt.plot(loss_idx,loss_lis)
+
+plt.savefig('./导出的图片loss.png')
