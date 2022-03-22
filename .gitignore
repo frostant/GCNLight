@@ -16,5 +16,6 @@ __pycache__/
 .rendered
 Note.md
 final_ans.txt
-final_result/
-code/result/
+final_result/*
+code/result/*
+code/finetune/*
